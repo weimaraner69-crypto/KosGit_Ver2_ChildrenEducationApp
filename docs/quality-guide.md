@@ -6,7 +6,7 @@
 
 ## 1. コード品質基準の概要
 
-このテンプレートは以下の3つの柱でコード品質を担保する。
+このプロジェクトは以下の3つの柱でコード品質を担保する。
 
 | 柱 | ツール / 手法 | 目的 |
 |---|---|---|
@@ -19,6 +19,7 @@
 - **mypy strict**: `strict = true` を有効化。すべての関数に型アノテーションを必須とし、`Any` 型の使用を明示的に管理する
 - **ruff**: PEP 8 準拠に加え、`N`（命名規約）、`UP`（Python バージョン互換性）、`B`（バグ予防）、`SIM`（簡素化）、`TCH`（型チェック最適化）ルールを適用
 - **Coverage quality**: 行カバレッジ（量）だけでなく、テストが実際にコードの意味的な振る舞いを検証しているかを評価する。境界値テスト、Property-based testing の活用が指標となる
+- **Policy gate**: `ci/policy_check.py` により、秘密情報混入、禁止操作、危険な直書き設定を早期に検出する
 
 ---
 
@@ -96,8 +97,8 @@ Hypothesis フレームワークが自動的に多数の入力データを生成
 ### セットアップ
 
 ```bash
-# 依存ライブラリのインストール
-uv sync --extra testing
+# 開発・テスト依存ライブラリのインストール
+uv sync --all-extras --dev
 ```
 
 ### 基本的なテストパターン
@@ -143,6 +144,7 @@ def test_invalid_input_rejected(value: float) -> None:
 
 Property-based testing の完全なサンプルは以下を参照:
 - `tests/test_sample_properties.py` — 事後条件・単調性・不変条件テストのサンプル
+- `tests/test_pipeline.py` — MVP パイプラインの境界値テスト・再現性テスト
 
 ---
 
@@ -213,8 +215,11 @@ uv run mutmut show <mutant_id>
 ### 実行コマンド一覧
 
 ```bash
+# --- ポリシーチェック ---
+uv run python ci/policy_check.py
+
 # --- 型チェック（mypy strict） ---
-uv run mypy src/ tests/
+uv run mypy src/ tests/ ci/
 
 # --- リンター（ruff check） ---
 uv run ruff check .
@@ -230,13 +235,25 @@ uv run pytest --cov=src --cov-report=term-missing
 
 # --- Property-based testing のみ実行 ---
 uv run pytest tests/test_sample_properties.py -q
+
+# --- MVP パイプライン関連テストのみ実行 ---
+uv run pytest tests/test_pipeline.py -q
 ```
 
 ### CI ワークフローでの統合
 
 `.github/workflows/ci.yml` の品質チェックセクションで上記コマンドを実行する。
-テンプレートでは `{{RUN_PREFIX}}` プレースホルダーが使用されており、
-`project-config.yml` の `toolchain.run_prefix` で置換される。
+現行構成では、`policy_check.py` → `ruff` → `mypy` → `pytest` の順で品質ゲートを構成している。
+ローカルで再現する場合も同じ順序を推奨する。
+
+### 現行の品質ゲート対象
+
+- `ci/policy_check.py` — 秘密情報、禁止操作、外部 URL 直書きなどの検出
+- `ruff` — リントと整形チェック
+- `mypy` — `src/`, `tests/`, `ci/` を対象とした strict 型チェック
+- `pytest` — `tests/test_pipeline.py` を中心とした E2E / 境界値 / 再現性テスト
+- `Hypothesis` — `tests/test_sample_properties.py` によるプロパティベーステスト
+- `mutmut` — 非ブロッキングのミューテーションテスト
 
 ---
 

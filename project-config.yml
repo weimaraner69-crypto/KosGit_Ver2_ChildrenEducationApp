@@ -12,17 +12,20 @@
 
 # --- プロジェクト基本情報 ---
 project:
-  name: "my-project" # リポジトリ名（英語、ケバブケース）
-  display_name: "My Project" # 表示名（日本語可）
-  description: "プロジェクトの説明" # 1行の説明
-  purpose: "このプロジェクトの目的を記載" # 詳細な目的
+  name: "kosgit-ver2-children-education-app" # リポジトリ名（英語、ケバブケース）
+  display_name: "KosGit Ver2 Children Education App" # 表示名（日本語可）
+  description: "子ども向け教育アプリ開発のためのAI駆動オーケストレーション基盤" # 1行の説明
+  purpose: "子ども向け教育アプリの開発で必要となる計画、実装、品質管理、監査、運用手順を一元管理し、MVPパイプラインから本番運用までを再現可能な形で進められるようにする。" # 詳細な目的
   scope_in: | # スコープ内
-    - 対象とする機能1
-    - 対象とする機能2
+    - 教育アプリ開発のための要件、計画、ポリシー、制約の文書管理
+    - Python ベースのMVPデータ処理パイプラインの実装と検証
+    - CI、テスト、監査フローの整備
+    - 将来のモバイルアプリ実装に向けた開発運用基盤の整備
   scope_out: | # スコープ外
-    - 除外する機能1
-    - 除外する機能2
-  owner: "githypn" # GitHub ユーザー名または Org
+    - iOS / Android の本番アプリUI実装
+    - 決済、認証、保護者向け管理画面などの本番向け機能実装
+    - 本番用インフラの構築と運用
+  owner: "kashioerik" # GitHub ユーザー名または Org
 
 # --- 言語・ツールチェイン ---
 toolchain:
@@ -41,9 +44,13 @@ source:
   package_name: "my_package" # パッケージ名（Python なら src/ 直下のフォルダ名）
   modules: # モジュール一覧（用途を記載）
     - name: "core"
-      description: "型、例外、共通ユーティリティ"
+      description: "型、例外、設定管理などの共通基盤"
     - name: "domain"
-      description: "ドメインロジック"
+      description: "教育向けデータ処理パイプラインと制約評価"
+    - name: "observability"
+      description: "OpenTelemetry を使った可観測性の拡張ポイント"
+    - name: "sample"
+      description: "テンプレート由来のサンプル実装とテスト例"
     # 必要に応じて追加
 
 # --- ロードマップ ---

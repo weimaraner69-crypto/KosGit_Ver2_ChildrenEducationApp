@@ -36,9 +36,14 @@
 
 - 目的：制約・品質の基盤を作る
 - 受入条件：
-  - <!-- プロジェクト固有の受入条件を記載 -->
+  - `docs/constraints.md` に、現行 MVP パイプラインで運用する制約 `C-001` と `C-002` の内容、しきい値、判定条件、境界値テスト方針が具体的に記載されている
+  - `docs/policies.md` と `docs/requirements.md` の品質・安全停止・再現性に関する記述が、MVP パイプラインの実装内容と矛盾しない
+  - `tests/` に C-001 / C-002 の境界値テストと、再現性を確認するテストが維持されている
+  - `.github/workflows/ci.yml` またはローカル実行手順上で、`ruff` / `mypy` / `pytest` / `policy_check.py` の品質ゲートが実行対象として定義されている
+  - `docs/quality-guide.md` と `docs/runbook.md` から、開発者がローカルで品質チェックを再実行できる
+  - `N-003` 完了時点で、次フェーズの実装者が「どの品質条件を守ればよいか」を docs だけで判断できる
 - 依存：N-002（完了済み）
-- 触る領域：<!-- 対象モジュールを記載 -->
+- 触る領域：`docs/constraints.md`, `docs/policies.md`, `docs/quality-guide.md`, `docs/runbook.md`, `.github/workflows/ci.yml`, `ci/policy_check.py`, `tests/`, `src/my_package/domain/`
 
 ## Done（今期完了）
 
@@ -73,11 +78,13 @@
 | ------------------------------------------- | ----- | ---------- | ---- |
 | N-001 リポジトリ基盤と CI 品質ゲートの確立  | #26   | Foundation | task |
 | N-002 MVP パイプラインの確立                | #29   | MVP        | task |
+| N-003 品質フレームワークの整備              | TBD   | Quality    | task |
 
 GitHub Project: <!-- URL を記載 -->
 
 ## 直近の変更履歴（最大10件）
 
+- 2026-03-30: N-003 の受入条件と対象領域を具体化
 - 2026-03-01: N-002 完了（PR #30 マージ、Issue #29 Close）→ Done に移動、N-003 を Next に昇格
 - 2025-07-14: N-001 を Done に移動、N-002 の受入条件を具体化、Issue #29 を対応表に追加
 - 2025-07-10: N-001 Issue #26 対応表追加

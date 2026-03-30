@@ -26,8 +26,6 @@ src/
 ├─ sample/         Design by Contract のサンプル実装（テンプレート参考用）
 ```
 
-<!-- project-config.yml の modules に合わせてモジュールを追加する -->
-
 ### core/
 
 - **types.py** — ドメイン型定義。すべて frozen dataclass で不変条件を `__post_init__` で検証（Design by Contract）
@@ -85,8 +83,6 @@ scripts/run_pipeline.py --config configs/pipeline_default.toml
 | domain         | core             | observability, sample |
 | observability  | （外部: OTel SDK） | core, domain   |
 | sample         | （なし）         | core, domain      |
-
-<!-- 必要に応じて追加 -->
 
 ## 制約仕様（N-002）
 

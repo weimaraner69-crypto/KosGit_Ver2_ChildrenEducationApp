@@ -7,7 +7,9 @@
 ## 前提
 
 - 秘密情報はリポジトリに含めない（P-002）
-- <!-- プロジェクト固有の前提を追加 -->
+- Python 3.11 と `uv` が利用できること
+- 品質チェックはローカルと CI の両方で再実行できること
+- 開発中に扱う入力データはダミー値または匿名化済みデータに限定すること
 
 ## セットアップ
 
@@ -15,34 +17,22 @@
 
 ```bash
 git clone <repository-url>
-cd {{PROJECT_NAME}}
+cd KosGit_Ver2_ChildrenEducationApp
 ```
 
 ### 2. 環境の準備
 
-<!-- 言語・ツールに合わせて記載 -->
-
-#### Python (uv) の例
+#### Python (uv)
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
-uv sync --dev
-```
-
-#### Node.js (pnpm) の例
-
-```bash
-corepack enable
-pnpm install
+uv sync --all-extras --dev
 ```
 
 ### 3. 環境変数の設定
 
-```bash
-cp .env.example .env
-# .env を編集し、必要な値を設定する
-# ⚠️ .env は絶対にコミットしない
-```
+現時点の MVP パイプラインは必須の環境変数を要求しない。
+今後 `.env` を導入する場合も、機密値はローカルにのみ保持し、リポジトリには含めない。
 
 ## 代表コマンド
 
@@ -50,14 +40,13 @@ cp .env.example .env
 
 ```bash
 # リンター
-{{RUN_PREFIX}} {{LINTER}}
+uv run ruff check .
 
 # フォーマッタ（チェックのみ）
-{{RUN_PREFIX}} {{FORMATTER}}
+uv run ruff format --check .
 
-# 型チェック（テストディレクトリも含める）
-{{RUN_PREFIX}} {{TYPE_CHECKER}}
-# ⚠️ 型チェックのスコープにテストディレクトリを必ず含めること
+# 型チェック
+uv run mypy src/ tests/ ci/
 ```
 
 ### IDE エラー検証（ゲートチェック）
@@ -69,14 +58,39 @@ Copilot エージェントの場合は `get_errors` ツール（filePaths 省略
 
 ```bash
 # 全テスト実行
-{{RUN_PREFIX}} {{TEST_RUNNER}}
+uv run pytest -q --tb=short
+
+# カバレッジ確認
+uv run pytest --cov=src --cov-report=term-missing
 ```
 
 ### ポリシーチェック
 
 ```bash
 # 禁止操作・秘密情報検出
-{{RUN_PREFIX}} python ci/policy_check.py
+uv run python ci/policy_check.py
+```
+
+### MVP パイプラインの実行
+
+```bash
+# 既定設定で実行
+uv run python scripts/run_pipeline.py
+
+# 明示的に設定ファイルを指定して実行
+uv run python scripts/run_pipeline.py --config configs/pipeline_default.toml
+```
+
+### ローカル品質ゲート再実行
+
+CI 失敗の切り分けや N-003 の確認時は、次の順番で再実行する。
+
+```bash
+uv run python ci/policy_check.py
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy src/ tests/ ci/
+uv run pytest -q --tb=short
 ```
 
 ## 生成物の扱い
@@ -92,18 +106,29 @@ Copilot エージェントの場合は `get_errors` ツール（filePaths 省略
 ### CI 失敗
 
 1. GitHub Actions のログで失敗箇所を特定する
-2. ローカルで再現する（`{{RUN_PREFIX}} {{TEST_RUNNER}}`）
-3. 修正して再プッシュする
+2. ローカル品質ゲートを同じ順番で再実行する
+3. 制約関連の失敗なら `docs/constraints.md` と `tests/test_pipeline.py` を確認する
+4. 修正して再プッシュする
+
+### 制約違反 (`C-001`, `C-002`)
+
+1. 入力値数が `max_values` を超えていないか確認する
+2. `NaN`, `+inf`, `-inf` が混入していないか確認する
+3. `configs/pipeline_default.toml` または指定した設定ファイルを見直す
+4. `uv run pytest -q --tb=short` で関連テストが通るか確認する
+5. 仕様変更を伴う場合は `docs/constraints.md` と `docs/requirements.md` を同時更新する
 
 ### 設定の破損
 
-1. `configs/` のデフォルト設定に戻す
-2. テストを実行して正常動作を確認する
+1. `configs/pipeline_default.toml` の既定値に戻す
+2. `PipelineConfig` の不変条件に違反していないか確認する
+3. `uv run pytest -q --tb=short` で正常動作を確認する
 
 ### 依存関係の問題
 
-1. ロックファイルを削除して再インストール
-2. CI で動作確認する
+1. `uv sync --all-extras --dev` を再実行する
+2. 必要なら `uv cache clean` 後に再同期する
+3. ローカル品質ゲートを再実行する
 
 ## モバイルでの開発
 
@@ -198,7 +223,7 @@ P-001〜P-003 違反が発覚した場合の即時対応手順。
 
    ```bash
    git revert <違反コミットSHA>
-   python ci/policy_check.py  # ポリシーチェックで解消を確認
+   uv run python ci/policy_check.py  # ポリシーチェックで解消を確認
    ```
 
 5. **エスカレーション**:
