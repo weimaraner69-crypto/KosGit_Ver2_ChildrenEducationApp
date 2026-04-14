@@ -11,20 +11,32 @@ from my_package.core.exceptions import (
     ValidationError,
 )
 from my_package.core.types import (
+    AnswerResult,
+    AnswerSubmission,
+    LearningSession,
+    LearningSessionResult,
+    Lesson,
     PipelineInput,
     PipelineOutput,
     ProcessingResult,
+    Question,
     Status,
 )
 
 __all__ = [
+    "AnswerResult",
+    "AnswerSubmission",
     "ConfigError",
     "ConstraintViolationError",
     "DomainError",
+    "LearningSession",
+    "LearningSessionResult",
+    "Lesson",
     "PipelineConfig",
     "PipelineInput",
     "PipelineOutput",
     "ProcessingResult",
+    "Question",
     "Status",
     "ValidationError",
     "load_config",

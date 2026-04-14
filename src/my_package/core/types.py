@@ -105,3 +105,150 @@ class PipelineOutput:
             raise ValidationError(msg)
         if self.timestamp.tzinfo is None:
             raise ValidationError("timestamp にはタイムゾーン情報が必須")
+
+
+@dataclass(frozen=True)
+class Question:
+    """学習コンテンツ内の1問。
+
+    不変条件:
+        - ``question_id`` と ``prompt`` は空でない。
+        - ``choices`` は2件以上の空でない選択肢を持つ。
+        - ``correct_choice_index`` は ``choices`` の範囲内にある。
+    """
+
+    question_id: str
+    prompt: str
+    choices: tuple[str, ...]
+    correct_choice_index: int
+    explanation: str | None = None
+
+    def __post_init__(self) -> None:
+        """不変条件を検証する。"""
+        if not self.question_id:
+            raise ValidationError("question_id は空にできない")
+        if not self.prompt:
+            raise ValidationError("prompt は空にできない")
+        if len(self.choices) < 2:
+            raise ValidationError("choices は少なくとも2件必要")
+        if any(not choice for choice in self.choices):
+            raise ValidationError("choices に空文字は使えない")
+        if not 0 <= self.correct_choice_index < len(self.choices):
+            msg = "correct_choice_index は choices の範囲内でなければならない"
+            raise ValidationError(msg)
+
+
+@dataclass(frozen=True)
+class Lesson:
+    """複数の問題をまとめた学習レッスン。"""
+
+    lesson_id: str
+    title: str
+    questions: tuple[Question, ...]
+    description: str | None = None
+
+    def __post_init__(self) -> None:
+        """不変条件を検証する。"""
+        if not self.lesson_id:
+            raise ValidationError("lesson_id は空にできない")
+        if not self.title:
+            raise ValidationError("title は空にできない")
+        if len(self.questions) == 0:
+            raise ValidationError("questions は少なくとも1問必要")
+        question_ids = [question.question_id for question in self.questions]
+        if len(question_ids) != len(set(question_ids)):
+            raise ValidationError("questions の question_id は一意でなければならない")
+
+
+@dataclass(frozen=True)
+class AnswerSubmission:
+    """ユーザーが1問に対して送信した回答。"""
+
+    question_id: str
+    selected_choice_index: int
+
+    def __post_init__(self) -> None:
+        """不変条件を検証する。"""
+        if not self.question_id:
+            raise ValidationError("question_id は空にできない")
+        if self.selected_choice_index < 0:
+            raise ValidationError("selected_choice_index は0以上でなければならない")
+
+
+@dataclass(frozen=True)
+class AnswerResult:
+    """1問分の採点結果。"""
+
+    question_id: str
+    selected_choice_index: int
+    correct_choice_index: int
+    is_correct: bool
+
+    def __post_init__(self) -> None:
+        """不変条件を検証する。"""
+        if not self.question_id:
+            raise ValidationError("question_id は空にできない")
+        if self.selected_choice_index < 0:
+            raise ValidationError("selected_choice_index は0以上でなければならない")
+        if self.correct_choice_index < 0:
+            raise ValidationError("correct_choice_index は0以上でなければならない")
+        expected = self.selected_choice_index == self.correct_choice_index
+        if self.is_correct != expected:
+            raise ValidationError("is_correct は選択結果と整合していなければならない")
+
+
+@dataclass(frozen=True)
+class LearningSession:
+    """レッスンに対する学習セッション。"""
+
+    lesson_id: str
+    learner_name: str
+    answers: tuple[AnswerSubmission, ...]
+    started_at: datetime = field(default_factory=lambda: datetime.now(tz=UTC))
+
+    def __post_init__(self) -> None:
+        """不変条件を検証する。"""
+        if not self.lesson_id:
+            raise ValidationError("lesson_id は空にできない")
+        if not self.learner_name:
+            raise ValidationError("learner_name は空にできない")
+        if self.started_at.tzinfo is None:
+            raise ValidationError("started_at にはタイムゾーン情報が必須")
+
+
+@dataclass(frozen=True)
+class LearningSessionResult:
+    """学習セッション全体の採点結果。"""
+
+    lesson_id: str
+    learner_name: str
+    total_questions: int
+    answered_questions: int
+    correct_answers: int
+    accuracy: float
+    results: tuple[AnswerResult, ...]
+    completed_at: datetime = field(default_factory=lambda: datetime.now(tz=UTC))
+
+    def __post_init__(self) -> None:
+        """不変条件を検証する。"""
+        if not self.lesson_id:
+            raise ValidationError("lesson_id は空にできない")
+        if not self.learner_name:
+            raise ValidationError("learner_name は空にできない")
+        if self.total_questions <= 0:
+            raise ValidationError("total_questions は正の整数でなければならない")
+        if self.answered_questions < 0:
+            raise ValidationError("answered_questions は0以上でなければならない")
+        if self.correct_answers < 0:
+            raise ValidationError("correct_answers は0以上でなければならない")
+        if self.answered_questions > self.total_questions:
+            raise ValidationError("answered_questions は total_questions を超えられない")
+        if self.correct_answers > self.answered_questions:
+            raise ValidationError("correct_answers は answered_questions を超えられない")
+        expected_accuracy = self.correct_answers / self.total_questions
+        if abs(self.accuracy - expected_accuracy) > 1e-9:
+            raise ValidationError("accuracy は correct_answers / total_questions と一致しない")
+        if len(self.results) != self.answered_questions:
+            raise ValidationError("results 件数は answered_questions と一致しなければならない")
+        if self.completed_at.tzinfo is None:
+            raise ValidationError("completed_at にはタイムゾーン情報が必須")
